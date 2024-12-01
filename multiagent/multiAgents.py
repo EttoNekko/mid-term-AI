@@ -15,6 +15,7 @@
 from util import manhattanDistance
 from game import Directions
 import random, util
+import numpy as np
 
 from game import Agent
 from pacman import GameState
@@ -68,6 +69,7 @@ class ReflexAgent(Agent):
         to create a masterful evaluation function.
         """
         # Useful information you can extract from a GameState (pacman.py)
+        
         successorGameState = currentGameState.generatePacmanSuccessor(action)
         newPos = successorGameState.getPacmanPosition()
         newFood = successorGameState.getFood()
@@ -75,8 +77,46 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
 
+        # Initialize the evaluation score
+        score = successorGameState.getScore()
+
+        # -------- FOOD EVALUATION --------
+        # Distance to the closest food
+        foodDistances = [manhattanDistance(newPos, food) for food in newFood.asList()]
+        if foodDistances:  # If there is food
+            closestFoodDistance = min(foodDistances)
+            score += 10 / (closestFoodDistance + 1)  # Reward proximity to food
+
+        # -------- GHOST EVALUATION --------
+        # Penalize proximity to active ghosts
+        ghostPenalty = 0
+        for ghost, scaredTime in zip(newGhostStates, newScaredTimes):
+            ghostDist = manhattanDistance(newPos, ghost.getPosition())
+            if scaredTime > 0:  # Ghosts are scared
+                score += 200 / (ghostDist + 1)  # Reward eating scared ghosts
+            elif ghostDist < 2:  # Ghosts are dangerous
+                ghostPenalty -= 500  # Heavily penalize if Pacman is too close to a ghost
+        score += ghostPenalty
+
+        # -------- FOOD COUNT PENALTY --------
+        # Penalize for the total remaining food to encourage eating food quickly
+        remainingFood = len(newFood.asList())
+        score -= 4 * remainingFood
+
+        # -------- STOP PENALTY --------
+        # Heavily penalize STOP action
+        if action == Directions.STOP:
+            score -= 500  # Increased penalty to discourage STOP
+
+        # -------- EXPLORATION REWARD --------
+        # Encourage Pacman to move towards unexplored areas
+        currentPos = currentGameState.getPacmanPosition()
+        if newPos != currentPos:  # Reward movement to a new position
+            score += 1
+
+        return score
+        
 def scoreEvaluationFunction(currentGameState: GameState):
     """
     This default evaluation function just returns the score of the state.
@@ -163,7 +203,33 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def expectimax(state, depth, agentIndex):
+            if state.isWin() or state.isLose() or depth == self.depth:
+                return self.evaluationFunction(state)
+
+            if agentIndex == 0:  # Pacman's turn (maximizing player)
+                return max(
+                    expectimax(state.generateSuccessor(agentIndex, action), depth, 1)
+                    for action in state.getLegalActions(agentIndex)
+                )
+            else:  # Ghost's turn (random choice)
+                nextAgent = (agentIndex + 1) % state.getNumAgents()
+                nextDepth = depth + 1 if nextAgent == 0 else depth
+                legalActions = state.getLegalActions(agentIndex)
+                probabilities = 1 / len(legalActions) if legalActions else 0
+                return sum(
+                    probabilities
+                    * expectimax(state.generateSuccessor(agentIndex, action), nextDepth, nextAgent)
+                    for action in legalActions
+                )
+
+        legalMoves = gameState.getLegalActions(0)  # Pacman's legal actions
+        scores = [expectimax(gameState.generateSuccessor(0, action), 0, 1) for action in legalMoves]
+        bestScore = max(scores)
+        bestIndices = [index for index, score in enumerate(scores) if score == bestScore]
+        chosenIndex = random.choice(bestIndices)
+
+        return legalMoves[chosenIndex]
 
 def betterEvaluationFunction(currentGameState: GameState):
     """
@@ -173,7 +239,64 @@ def betterEvaluationFunction(currentGameState: GameState):
     DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # Pacman's current position
+    pacmanPos = currentGameState.getPacmanPosition()
+
+    # Get food grid and convert to a list of positions
+    foodList = currentGameState.getFood().asList()
+
+    # Get ghost states and their scared timers
+    ghostStates = currentGameState.getGhostStates()
+    scaredTimes = [ghostState.scaredTimer for ghostState in ghostStates]
+
+    # Initialize evaluation score with the current game score
+    score = currentGameState.getScore()
+
+    # -------- FOOD EVALUATION --------
+    # Reward for being closer to the nearest food
+    foodDistances = [manhattanDistance(pacmanPos, food) for food in foodList]
+    if foodDistances:
+        closestFoodDistance = min(foodDistances)
+        score += 10 / (closestFoodDistance + 1)  # Reward proximity to food
+
+    # -------- GHOST EVALUATION --------
+    ghostPenalty = 0
+    for ghostState, scaredTime in zip(ghostStates, scaredTimes):
+        ghostDist = manhattanDistance(pacmanPos, ghostState.getPosition())
+        if scaredTime > 0:  # If the ghost is scared
+            if scaredTime >= ghostDist:  # Pacman can reach the ghost in time
+                score += 500 / (ghostDist + 1)  # Encourage Pacman to eat the ghost
+            else:
+                ghostPenalty -= 50 / (ghostDist + 1)  # Penalize moving toward unreachable scared ghost
+        elif ghostDist <= 1:  # Strong penalty for ghosts within 1 step
+            ghostPenalty -= 1000
+        elif ghostDist <= 2:  # Moderate penalty for ghosts within 2 steps
+            ghostPenalty -= 200 / ghostDist
+    score += ghostPenalty
+
+    # -------- FOOD COUNT PENALTY --------
+    # Penalize remaining food to encourage Pacman to eat food faster
+    remainingFood = len(foodList)
+    if remainingFood <= 3:  # If there are very few food items left
+        score += 100 / (remainingFood + 1)  # High reward for clearing the last few foods
+    score -= 4 * remainingFood  # Penalize remaining food overall
+
+    # -------- MOVEMENT REWARD --------
+    # Encourage Pacman to move to a new position (to avoid being stuck)
+    # Compare new position to Pacman's current position
+    #currentPos = currentGameState.getPacmanPosition()
+    #if currentPos != pacmanPos:  # If Pacman moved to a new position
+    #    score += 1
+    # -------- EXPLORATION REWARD --------
+    # Encourage Pacman to move to unexplored areas
+    legalActions = currentGameState.getLegalActions()
+    for action in legalActions:
+        successorGameState = currentGameState.generatePacmanSuccessor(action)
+        newPacmanPos = successorGameState.getPacmanPosition()
+        if newPacmanPos != pacmanPos:  # Reward movement to a new position
+            score += 1  # Add a small reward for exploration
+    
+    return score
 
 # Abbreviation
 better = betterEvaluationFunction
