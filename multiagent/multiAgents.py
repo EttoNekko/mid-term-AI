@@ -88,6 +88,11 @@ class ReflexAgent(Agent):
             closestFoodDistance = min(foodDistances)
             score += 10 / (closestFoodDistance + 1)  # Reward proximity to food
 
+        # -------- FOOD COUNT PENALTY --------
+        # Penalize for the total remaining food to encourage eating food quickly
+        remainingFood = len(newFood.asList())
+        score -= 4 * remainingFood
+        
         # -------- GHOST EVALUATION --------
         # Penalize proximity to active ghosts
         ghostPenalty = 0
@@ -98,22 +103,6 @@ class ReflexAgent(Agent):
             elif ghostDist < 2:  # Ghosts are dangerous
                 ghostPenalty -= 500  # Heavily penalize if Pacman is too close to a ghost
         score += ghostPenalty
-
-        # -------- FOOD COUNT PENALTY --------
-        # Penalize for the total remaining food to encourage eating food quickly
-        remainingFood = len(newFood.asList())
-        score -= 4 * remainingFood
-
-        # -------- STOP PENALTY --------
-        # Heavily penalize STOP action
-        if action == Directions.STOP:
-            score -= 500  # Increased penalty to discourage STOP
-
-        # -------- EXPLORATION REWARD --------
-        # Encourage Pacman to move towards unexplored areas
-        currentPos = currentGameState.getPacmanPosition()
-        if newPos != currentPos:  # Reward movement to a new position
-            score += 1
 
         return score
         
@@ -331,6 +320,13 @@ def betterEvaluationFunction(currentGameState: GameState):
         closestFoodDistance = min(foodDistances)
         score += 10 / (closestFoodDistance + 1)  # Reward proximity to food
 
+    # -------- FOOD COUNT PENALTY --------
+    # Penalize remaining food to encourage Pacman to eat food faster
+    remainingFood = len(foodList)
+    if remainingFood <= 3:  # If there are very few food items left
+        score += 100 / (remainingFood + 1)  # High reward for clearing the last few foods
+    score -= 4 * remainingFood  # Penalize remaining food overall
+    
     # -------- GHOST EVALUATION --------
     ghostPenalty = 0
     for ghostState, scaredTime in zip(ghostStates, scaredTimes):
@@ -346,19 +342,6 @@ def betterEvaluationFunction(currentGameState: GameState):
             ghostPenalty -= 200 / ghostDist
     score += ghostPenalty
 
-    # -------- FOOD COUNT PENALTY --------
-    # Penalize remaining food to encourage Pacman to eat food faster
-    remainingFood = len(foodList)
-    if remainingFood <= 3:  # If there are very few food items left
-        score += 100 / (remainingFood + 1)  # High reward for clearing the last few foods
-    score -= 4 * remainingFood  # Penalize remaining food overall
-
-    # -------- MOVEMENT REWARD --------
-    # Encourage Pacman to move to a new position (to avoid being stuck)
-    # Compare new position to Pacman's current position
-    #currentPos = currentGameState.getPacmanPosition()
-    #if currentPos != pacmanPos:  # If Pacman moved to a new position
-    #    score += 1
     # -------- EXPLORATION REWARD --------
     # Encourage Pacman to move to unexplored areas
     legalActions = currentGameState.getLegalActions()
