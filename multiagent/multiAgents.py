@@ -324,7 +324,7 @@ def betterEvaluationFunction(currentGameState: GameState):
     # Penalize remaining food to encourage Pacman to eat food faster
     remainingFood = len(foodList)
     if remainingFood <= 3:  # If there are very few food items left
-        score += 100 / (remainingFood + 1)  # High reward for clearing the last few foods
+        score += 50 / (remainingFood + 1)  # High reward for clearing the last few foods
     score -= 4 * remainingFood  # Penalize remaining food overall
     
     # -------- GHOST EVALUATION --------
@@ -344,13 +344,15 @@ def betterEvaluationFunction(currentGameState: GameState):
 
     # -------- EXPLORATION REWARD --------
     # Encourage Pacman to move to unexplored areas
-    legalActions = currentGameState.getLegalActions()
-    for action in legalActions:
-        successorGameState = currentGameState.generatePacmanSuccessor(action)
-        newPacmanPos = successorGameState.getPacmanPosition()
-        if newPacmanPos != pacmanPos:  # Reward movement to a new position
-            score += 1  # Add a small reward for exploration
-    
+    if score > 675:
+      legalActions = currentGameState.getLegalActions()
+      for action in legalActions:
+          successorGameState = currentGameState.generatePacmanSuccessor(action)
+          newPacmanPos = successorGameState.getPacmanPosition()
+
+          if newPacmanPos != pacmanPos:  # Reward movement to a new position
+              score += 1  # Add a small reward for exploration
+      
     return score
 
 # Abbreviation
