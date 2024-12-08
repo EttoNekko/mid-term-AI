@@ -81,19 +81,19 @@ class ReflexAgent(Agent):
         # Initialize the evaluation score
         score = successorGameState.getScore()
 
-        # -------- FOOD EVALUATION --------
+        # Food Evalutaion
         # Distance to the closest food
         foodDistances = [manhattanDistance(newPos, food) for food in newFood.asList()]
         if foodDistances:  # If there is food
             closestFoodDistance = min(foodDistances)
             score += 10 / (closestFoodDistance + 1)  # Reward proximity to food
 
-        # -------- FOOD COUNT PENALTY --------
+        # Food Count Penalty
         # Penalize for the total remaining food to encourage eating food quickly
         remainingFood = len(newFood.asList())
         score -= 4 * remainingFood
         
-        # -------- GHOST EVALUATION --------
+        # Ghost Evaluation
         # Penalize proximity to active ghosts
         ghostPenalty = 0
         for ghost, scaredTime in zip(newGhostStates, newScaredTimes):
@@ -313,21 +313,21 @@ def betterEvaluationFunction(currentGameState: GameState):
     # Initialize evaluation score with the current game score
     score = currentGameState.getScore()
 
-    # -------- FOOD EVALUATION --------
+    # Food Evaluation
     # Reward for being closer to the nearest food
     foodDistances = [manhattanDistance(pacmanPos, food) for food in foodList]
     if foodDistances:
         closestFoodDistance = min(foodDistances)
         score += 10 / (closestFoodDistance + 1)  # Reward proximity to food
 
-    # -------- FOOD COUNT PENALTY --------
+    # Food count Penalty
     # Penalize remaining food to encourage Pacman to eat food faster
     remainingFood = len(foodList)
     if remainingFood <= 3:  # If there are very few food items left
         score += 50 / (remainingFood + 1)  # High reward for clearing the last few foods
     score -= 4 * remainingFood  # Penalize remaining food overall
     
-    # -------- GHOST EVALUATION --------
+    # Ghost Evaluation
     ghostPenalty = 0
     for ghostState, scaredTime in zip(ghostStates, scaredTimes):
         ghostDist = manhattanDistance(pacmanPos, ghostState.getPosition())
@@ -342,7 +342,6 @@ def betterEvaluationFunction(currentGameState: GameState):
             ghostPenalty -= 200 / ghostDist
     score += ghostPenalty
 
-    # -------- EXPLORATION REWARD --------
     # Encourage Pacman to move to unexplored areas
     if score > 675:
       legalActions = currentGameState.getLegalActions()
