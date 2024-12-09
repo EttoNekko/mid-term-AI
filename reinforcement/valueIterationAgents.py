@@ -66,19 +66,16 @@ class ValueIterationAgent(ValueEstimationAgent):
         """
         "*** YOUR CODE HERE ***"
         for _ in range(self.iterations):
-            newValues = util.Counter()  # Temporary storage for updated values
+            newValues = util.Counter() 
             for state in self.mdp.getStates():
                 if self.mdp.isTerminal(state):
-                    # Terminal states have no value change
                     newValues[state] = 0
                 else:
-                    # Get the maximum Q-value across all actions for the current state
                     actionValues = [
                         self.computeQValueFromValues(state, action)
                         for action in self.mdp.getPossibleActions(state)
                     ]
                     newValues[state] = max(actionValues) if actionValues else 0
-            # After finishing the iteration over all states, update the values
             self.values = newValues
 
     def getValue(self, state):

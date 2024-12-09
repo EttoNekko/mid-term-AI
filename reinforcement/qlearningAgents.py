@@ -128,10 +128,8 @@ class QLearningAgent(ReinforcementAgent):
         currentQ = self.getQValue(state, action)
         nextMaxValue = self.computeValueFromQValues(nextState)
         
-        # Compute new Q-value
         newQ = (1 - self.alpha) * currentQ + self.alpha * (reward + self.discount * nextMaxValue)
         
-        # Update Q-value
         self.qValues[(state, action)] = newQ
 
     def getPolicy(self, state):
